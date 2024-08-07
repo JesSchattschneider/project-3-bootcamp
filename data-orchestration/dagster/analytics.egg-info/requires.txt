@@ -1,0 +1,11 @@
+dagster
+dagster-cloud
+pandas
+pg8000
+elementpath
+dagster_snowflake
+snowflake-connector-python
+
+[dev]
+dagster-webserver
+pytest

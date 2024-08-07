@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+setup.cfg
+setup.py
+analytics/__init__.py
+analytics.egg-info/PKG-INFO
+analytics.egg-info/SOURCES.txt
+analytics.egg-info/dependency_links.txt
+analytics.egg-info/requires.txt
+analytics.egg-info/top_level.txt
+analytics/assets/__init__.py
+analytics/jobs/__init__.py
+analytics/ops/__init__.py
+analytics/ops/site_list.py
+analytics/resources/__init__.py
+analytics/schedules/__init__.py
