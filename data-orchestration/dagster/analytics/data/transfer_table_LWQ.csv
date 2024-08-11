@@ -1,0 +1,120 @@
+Agency,CallName,LAWAName
+ac,Chlorophyll,CHLA
+ac,Cyanobacteria BioVolume (mm3/L),CYANOTOT
+ac,E. coli,ECOLI
+ac,NH3+NH4 as N (mg/l),NH4N
+ac,pH (pH units),pH
+ac,Tot N (mg/l),TN
+ac,Tot P (mg/l),TP
+ac,Toxic Cyanobacteria BioVolume (mm3/L),CYANOTOX
+ac,Transpar.-secchi (m),Secchi
+boprc,CHLA.LabResult,CHLA
+boprc,E coli QT.LabResult,ECOLI
+boprc,NH4-N.LabResult,NH4N
+boprc,pH.LabResult,pH
+boprc,Potentially Toxic Cyanobacteria.LabResult,CYANOTOX
+boprc,TN.LabResult,TN
+boprc,Total Cyanobacteria.LabResult,CYANOTOT
+boprc,TP.LabResult,TP
+boprc,VC - SD.LabResult,Secchi
+ecan,Ammoniacal Nitrogen,NH4N
+ecan,Chlorophyll a (planktonic),CHLA
+ecan,E. coli,ECOLI
+ecan,pH,pH
+ecan,pH (Field),pH
+ecan,"Cyanobacteria biovolume, Potentially toxic",CYANOTOX
+ecan,Secchi Disk,Secchi
+ecan,"Cyanobacteria biovolume, Total",CYANOTOT
+ecan,Total Nitrogen,TN
+ecan,Total Phosphorus,TP
+es,Chlorophyll A <mg/l> [Chlorophyll A <mg/l>],CHLA
+es,Clarity (Secchi Disc),Secchi
+es,E-Coli <CFU>,ECOLI
+es,Nitrogen (Total Ammoniacal),NH4N
+es,Nitrogen (Total),TN
+es,Nitrogen (Total) Direct,TN
+es,pH (Lab),pH
+es,Phosphorus (Total),TP
+es,Potentially toxic cyanobacteria biovolume,CYANOTOX
+es,LawaCyano,CYANOTOT
+es,Total Cyanobacteria Biovolume (SRC),CYANOTOT
+gw,Ammoniacal Nitrogen,NH4N
+gw,Chlorophyll a,CHLA
+gw,E-Coli,ECOLI
+gw,pH (Field)(X),pH
+gw,Potentially toxic cyanobacteria biovolume,CYANOTOX
+gw,Secchi depth,Secchi
+gw,Total cyanobacteria biovolume,CYANOTOT
+gw,Total Nitrogen,TN
+gw,Total Phosphorus,TP
+gw,pH (Lab),pH
+hbrc,Chlorophyll a WATER,CHLA
+hbrc,E. Coli,ECOLI
+hbrc,pH (Field),pH
+hbrc,pH (Lab),pH
+hbrc,Potentially toxic cyanobacteria biovolume,CYANOTOX
+hbrc,Secchi Depth,Secchi
+hbrc,Total Ammoniacal-N,NH4N
+hbrc,Total cyanobacteria biovolume,CYANOTOT
+hbrc,Total Nitrogen,TN
+hbrc,Total Phosphorus,TP
+hrc,Ammoniacal-N (HRC),NH4N
+hrc,Black Disc (HRC),Secchi
+hrc,Chlorophyll A (HRC),CHLA
+hrc,E. coli by MPN (HRC),ECOLI
+hrc,Field pH (HRC),pH
+hrc,Potentially Toxic Cyanobacteria Biovol,CYANOTOX
+hrc,TN (HRC),TN
+hrc,Total Cyanobacteria Bio Volume,CYANOTOT
+hrc,TP (HRC),TP
+mdc,Ammonia - Nitrogen,NH4N
+mdc,Dissolved Reactive Phosphorus,NA
+mdc,E. coli,ECOLI
+mdc,Nitrate - Nitrogen,NA
+mdc,pH,pH
+mdc,Phosphorous,NA
+mdc,Potentially toxic cyanobacteria biovolume,CYANOTOX
+mdc,Total cyanobacteria biovolume,CYANOTOT
+nrc,Ammoniacal Nitrogen,NH4N
+nrc,CHLa,CHLA
+nrc,Escherichia coli,ECOLI
+nrc,pH [pH (Discrete)],pH
+nrc,Potentially toxic cyanobacteria biovolume,CYANOTOX
+nrc,Secchi Depth,Secchi
+nrc,Secchi Depth - with viewer,Secchi
+nrc,Total cyanobacteria biovolume,CYANOTOT
+nrc,Total Nitrogen,TN
+nrc,Total Phosphorus,TP
+orc,Ammoniacal Nitrogen.LabData,NH4N
+orc,Chlorophyll a.LabData,CHLA
+orc,E-Coli MPN.LabData,ECOLI
+orc,pH.LabData,pH
+orc,Secchi depth.FieldData,Secchi
+orc,Total Nitrogen.LabData,TN
+orc,Total Phosphorus.LabData,TP
+trc,CHLA,CHLA
+trc,ECOL,ECOLI
+trc,NH4,NH4N
+trc,PH,pH
+trc,Potentially toxic cyanobacteria biovolume,CYANOTOX
+trc,SECCHI,Secchi
+trc,TN,TN
+trc,Total cyanobacteria biovolume,CYANOTOT
+trc,TP,TP
+wcrc,Ammonia-N,NH4N
+wcrc,Chlorophyll a,CHLA
+wcrc,E.coli (Mem Filtration),ECOLI
+wcrc,Nitrogen (Total),TN
+wcrc,pH @ ~ 4m,pH
+wcrc,Phosphorous (Total),TP
+wcrc,Phosphorous Total,TP
+wcrc,Water Clarity (Clarity Tube),Secchi
+wcrc,Water Clarity (Secchi Disc),Secchi
+wrc,Chlorophyll A,CHLA
+wrc,Cyanobacteria BioVol,CYANOTOT
+wrc,EColi,ECOLI
+wrc,NH4,NH4N
+wrc,pH,pH
+wrc,Secchi Disk,Secchi
+wrc,Total Phosphorus,TP
+wrc,TotalNitrogen,TN

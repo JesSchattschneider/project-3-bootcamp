@@ -1,1 +1,0 @@
-# https://docs.dagster.io/concepts/assets/software-defined-assets

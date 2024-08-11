@@ -5,6 +5,7 @@ pg8000
 elementpath
 dagster_snowflake
 snowflake-connector-python
+futures
 
 [dev]
 dagster-webserver

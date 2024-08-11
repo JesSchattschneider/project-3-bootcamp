@@ -36,11 +36,115 @@ def get_one(context):
             print(result)
             context.log.info(f"Result: {result}")
 
-# TODO: add primary key to the table
-def insert_data_to_snowflake(snowflake_resource_con: Any, 
+def _create_table_if_not_exists(cursor, table_name, df, logger, datetime_columns=None):
+        cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
+        table_exists = cursor.fetchone() is not None
+        
+        if not table_exists:
+            if datetime_columns:
+                # get all columns from the dataframe that are not datetime columns
+                columns = df.columns.difference(datetime_columns)
+                column_definitions = ", ".join([f"{col} STRING" for col in columns])  # Assuming all columns are strings
+                column_definitions += ", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"  # Add created_at column with default current timestamp
+                for col in datetime_columns:
+                    column_definitions += f", {col} TIMESTAMP"
+            else:
+                columns = df.columns
+                column_definitions = ", ".join([f"{col} STRING" for col in columns])  # Assuming all columns are strings
+                column_definitions += ", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"  # Add created_at column with default current timestamp            
+            create_stmt = f"CREATE TABLE {table_name} ({column_definitions})"
+            cursor.execute(create_stmt)
+            logger.info(f"Table {table_name} created.")
+            print(f"Table {table_name} created.")
+
+def _insert_data(cursor, table_name, data_to_insert):
+        columns = data_to_insert[0].keys()
+        insert_cols = ', '.join(columns)
+        insert_vals = ', '.join([f'%({col})s' for col in columns])
+        insert_stmt = f"""
+        INSERT INTO {table_name} ({insert_cols})
+        VALUES ({insert_vals})
+        """
+        for row in data_to_insert:
+            cursor.execute(insert_stmt, row)
+
+def _upsert_data(cursor, table_name, data_to_insert, primary_key):
+    if not data_to_insert:
+        return  # Exit if there's no data to insert
+
+    # Extract columns from data
+    columns = data_to_insert[0].keys()
+    columns_list = ', '.join(columns)
+    
+    # Handle values and convert None to NULL
+    values_list = ', '.join([
+        f"({', '.join([f'NULL' if value is None else repr(value) for value in row.values()])})"
+        for row in data_to_insert
+    ])
+    
+    # Define the INSERT SQL statement with WHERE NOT EXISTS clause
+    insert_stmt = f"""
+    INSERT INTO {table_name} ({columns_list})
+    SELECT {', '.join([f'source.{col}' for col in columns])}
+    FROM (VALUES {values_list}) AS source ({columns_list})
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM {table_name} target
+        WHERE target.{primary_key} = source.{primary_key}
+    );
+    """
+    
+    # Print SQL statement for debugging
+    print(f"Executing SQL: {insert_stmt}")
+    
+    try:
+        # Execute the INSERT statement
+        cursor.execute(insert_stmt)
+    except Exception as e:
+        print(f"Error executing upsert: {e}")
+        raise
+
+def _insert_data_snowflake(snowflake_resource_con: Any, df: pd.DataFrame, table_name: str, logger: Any, council: Optional[str] = None) -> None:
+    """Insert data into a Snowflake table, creating the table if it does not exist.
+
+    Args:
+        snowflake_resource_con (Any): The Snowflake connection resource.
+        df (pd.DataFrame): The DataFrame containing data to insert.
+        table_name (str): The name of the target table.
+        logger (Any): Logger for logging information and errors.
+    """
+    try:
+            with snowflake_resource_con.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # Insert into main table
+                    _create_table_if_not_exists(cursor, table_name, df, logger)
+                    
+                    data_to_insert = df.to_dict(orient='records')
+                    _insert_data(cursor, table_name, data_to_insert)
+                    
+                    # Insert into latest table
+                    latest_table_name = f"{table_name}_latest"
+                    _create_table_if_not_exists(cursor, latest_table_name, df, logger)
+
+                    # Delete existing rows for the council in the latest table
+                    delete_stmt = f"DELETE FROM {latest_table_name} WHERE council = %s"
+                    cursor.execute(delete_stmt, (council,))
+                    
+                    # Insert new rows into the latest table
+                    _insert_data(cursor, latest_table_name, data_to_insert)
+                    
+                    logger.info("Data successfully inserted into the database and latest table.")
+        
+    except Exception as e:
+        logger.error(f"Failed to append to database: {e}")
+
+def load_data_to_snowflake(snowflake_resource_con: Any, 
                              df: pd.DataFrame, 
-                             table_name: str, 
-                             logger: Any) -> None:
+                             table_name: str,
+                             logger: Any,
+                             method: str = "insert",
+                             council: str = None
+                             ) -> None:
     """Insert data into a Snowflake table, creating the table if it does not exist.
 
     Args:
@@ -53,45 +157,31 @@ def insert_data_to_snowflake(snowflake_resource_con: Any,
     if df.empty:
         logger.info("No data to insert.")
         return
-        
-    try:
-        with snowflake_resource_con.get_connection() as conn:
-            with conn.cursor() as cursor:
-                # Check if table exists
-                cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-                table_exists = cursor.fetchone() is not None
-                
-                if not table_exists:
-                    # Create table if it does not exist
-                    columns = df.columns
-                    column_definitions = ", ".join([f"{col} STRING" for col in columns])  # Assuming all columns are strings
-                    # add created_at column as datetime
-                    column_definitions += ", created_at TIMESTAMP"
-
-                    create_stmt = f"CREATE TABLE {table_name} ({column_definitions})"
-                    cursor.execute(create_stmt)
-                    logger.info(f"Table {table_name} created.")
-
-                # Add created_at column with the current timestamp to each row
-                df['created_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                # Prepare data for insertion
-                data_to_insert = df.to_dict(orient='records')
-                columns = list(data_to_insert[0].keys())
-                insert_cols = ', '.join(columns)
-                insert_vals = ', '.join([f'%({col})s' for col in columns])
-                insert_stmt = f"""
-                INSERT INTO {table_name} ({insert_cols})
-                VALUES ({insert_vals})
-                """
-
-                # Insert data
-                for row in data_to_insert:
-                    cursor.execute(insert_stmt, row)
-                logger.info("Data successfully inserted into the database.")
     
-    except Exception as e:
-        logger.error(f"Failed to append to database: {e}")
+    if method == "insert":
+        logger.info("Inserting data into the database.")
+        _insert_data_snowflake(snowflake_resource_con, df, table_name, logger, council)
+    
+    if method == "upsert":
+        logger.info("Upserting data into the database.")
+
+        try:
+            with snowflake_resource_con.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # Insert into main table
+                    print(df.columns)
+                    _create_table_if_not_exists(cursor, table_name, df, logger)
+                    
+                    test = df.head(2)
+                    
+                    data_to_upsert = test.to_dict(orient='records')
+                    _upsert_data(cursor, table_name, data_to_upsert, primary_key = 'id')
+                    
+                    logger.info("Data successfully inserted into the database and latest table.")
+        
+        except Exception as e:
+            logger.error(f"Failed to upsert to database: {e}")
+
 
 @op(required_resource_keys={"snowflake_resource"})
 def wfs_db_table(context: OpExecutionContext, 
@@ -106,7 +196,7 @@ def wfs_db_table(context: OpExecutionContext,
 
     # Add an additional column for the primary key
     transformed_df["pk_lawa_and_council_id"] = transformed_df["lawasiteid"].astype(str) + "__" + transformed_df["councilsiteid"].astype(str)
-    # Add created_at and partition_key columns
+    # Add partition_key columns
     transformed_df['partition_key'] = context.partition_key
 
     # Transform the DataFrame to a list of dictionaries
@@ -127,166 +217,3 @@ def wfs_db_table(context: OpExecutionContext,
     # Upsert data to Snowflake
     # append_to_database(context, snowflake_conn, data_to_db, table, metadata)
     
-
-# def append_to_database(
-#         context: OpExecutionContext,
-#         snowflake_conn: SnowflakeResource,
-#         data: list[dict],
-#         table: Table,
-#         metadata: MetaData
-#     ) -> None:
-#     """Appends data into the Snowflake database.
-
-#     Args:
-#         snowflake_conn: a SnowflakeResource object
-#         data: the transformed data
-#     """
-#     with snowflake_conn.get_connection() as conn:
-#         account = snowflake_conn.account
-#         user = snowflake_conn.user
-#         password = snowflake_conn.password
-#         database = snowflake_conn.database
-#         schema = snowflake_conn.schema
-#         warehouse = snowflake_conn.warehouse
-
-#         connection_url = URL.create(
-#             drivername="snowflake",
-#             username=user,
-#             password=password,
-#             host=account,
-#             database=database,
-#             schema=schema,
-#             query={
-#                 "warehouse": warehouse
-#             }
-#         )
-
-#         engine = create_engine(connection_url)
-        
-#         context.log.info("Creating database table if not exist")
-#         metadata.create_all(engine)
-
-#         # Convert data to Snowflake-compatible format
-#         data_to_insert = [
-#             {col: val for col, val in row.items()} for row in data
-#         ]
-
-#         # Generate the column list and value placeholders for the insert statement
-#         columns = list(data_to_insert[0].keys())
-#         insert_cols = ', '.join(columns)
-#         insert_vals = ', '.join([f':{col}' for col in columns])
-
-#         # Create the INSERT statement
-#         insert_stmt = f"""
-#         INSERT INTO {table.name} ({insert_cols})
-#         VALUES ({insert_vals})
-#         """
-
-#         context.log.info("Appending records to database table")
-#         with engine.begin() as connection:
-#             try:
-#                 for row in data_to_insert:
-#                     connection.execute(text(insert_stmt), **row)
-#             except Exception as e:
-#                 raise Exception(f"Failed to append to database, {e}")
-#         context.log.info(f"Completed append to database table.")
-
-# def insert_to_database(
-#         context: OpExecutionContext,
-#         postgres_conn: PostgresqlDatabaseResource,
-#         data: list[dict],
-#         table: Table,
-#         metadata: MetaData
-#     ) -> None:
-#     """Inserts data into the target database.
-
-#     Args:
-#         context: Dagster execution context.
-#         postgres_conn: a PostgresqlDatabaseResource object with connection details.
-#         data: the data to be inserted.
-#         table: a SQLAlchemy Table object representing the target table.
-#         metadata: a SQLAlchemy MetaData object.
-#     """
-#     # Create the connection URL
-#     connection_url = URL.create(
-#         drivername="postgresql+pg8000",
-#         username=postgres_conn.username,
-#         password=postgres_conn.password,
-#         host=postgres_conn.host_name,
-#         port=postgres_conn.port,
-#         database=postgres_conn.database_name,
-#     )
-#     engine = create_engine(connection_url)
-    
-#     # Create the table if it does not exist
-#     context.log.info("Creating database table if not exist")
-#     metadata.create_all(engine)
-    
-#     # Prepare the insert statement
-#     insert_statement = table.insert().values(data)
-    
-#     # Insert the data into the database
-#     context.log.info("Inserting records into database table")
-#     with engine.begin() as connection:
-#         try:
-#             result = connection.execute(insert_statement)
-#         except SQLAlchemyError as e:
-#             raise Exception(f"Failed to insert into database: {e}")
-    
-#     context.log.info(f"Completed insert to database table. Rows affected: {result.rowcount}")
-
-# def upsert_to_database(
-#         context: OpExecutionContext,
-#         snowflake_conn: SnowflakeResource,
-#         data: list[dict],
-#         table: Table,
-#         metadata: MetaData
-#     ) -> None:
-#     """Upserts data into the Snowflake database.
-
-#     Args:
-#         snowflake_conn: a SnowflakeResource object
-#         data: the transformed data
-#     """
-#     # Create SQLAlchemy engine using the Snowflake connection
-#     connection_url = snowflake_conn.get_connection_url()
-#     engine = create_engine(connection_url)
-    
-#     context.log.info("Creating database table if not exist")
-#     metadata.create_all(engine)
-
-#     key_columns = [
-#         pk_column.name for pk_column in table.primary_key.columns.values()
-#     ]
-
-#     # Convert data to Snowflake-compatible format
-#     data_to_insert = [
-#         {col: val for col, val in row.items()} for row in data
-#     ]
-
-#     # Generate the column list and value placeholders for the insert statement
-#     columns = list(data_to_insert[0].keys())
-#     insert_cols = ', '.join(columns)
-#     insert_vals = ', '.join([f':{col}' for col in columns])
-    
-#     # Generate the SET clause for the update part of the MERGE statement
-#     update_clause = ', '.join([f'{col} = :{col}' for col in columns if col not in key_columns])
-
-#     # Create the MERGE statement
-#     merge_stmt = f"""
-#     MERGE INTO {table.name} AS target
-#     USING (SELECT {insert_vals}) AS source ({insert_cols})
-#     ON ({' AND '.join([f'target.{col} = source.{col}' for col in key_columns])})
-#     WHEN MATCHED THEN UPDATE SET {update_clause}
-#     WHEN NOT MATCHED THEN
-#     INSERT ({insert_cols}) VALUES ({insert_vals})
-#     """
-
-#     context.log.info("Upserting records to database table")
-#     with engine.begin() as connection:
-#         try:
-#             for row in data_to_insert:
-#                 connection.execute(text(merge_stmt), **row)
-#         except Exception as e:
-#             raise Exception(f"Failed to upsert to database, {e}")
-#     context.log.info(f"Completed upsert to database table.")
