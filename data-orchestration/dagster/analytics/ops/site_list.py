@@ -4,9 +4,7 @@ import requests
 import csv
 import datetime
 import numpy as np
-from analytics.ops import parse_wfs_data, insert_data_to_snowflake
-from sqlalchemy import MetaData
-from sqlalchemy.engine.url import URL
+from analytics.ops import parse_wfs_data, load_data_to_snowflake
 
 # Define columns to be used in the WFS data
 VARS = ["councilsiteid", "siteid", "lawasiteid",
@@ -21,9 +19,6 @@ def process_wfs_data(context: OpExecutionContext,
                      vars: list[str] = VARS,
                      url_path: str = URL_LIST) -> pd.DataFrame:
     """Processes WFS data for the given council partition."""
-
-    context.log.info(modules)
-    context.log.info(vars)
 
     context.log.info("Opening file with URLs")
     councils_wfs = []
@@ -75,29 +70,30 @@ def process_wfs_data(context: OpExecutionContext,
             var_module = f"{module}uality"
         else:
             context.log.error(f"Unknown module: {module}")
-            continue  # Skip processing for unknown module
+            continue
 
         if var_module not in df.columns:
             context.log.error(f"Column {var_module} not in the data")
-            continue  # Skip processing if column is missing
+            continue 
 
         # Filter data based on module
-        # print(df.head())
         df = data_raw[data_raw[var_module].str.lower().isin(["y", "yes", "true"])]
 
         if len(df) == 0:
             context.log.info(f"No sites found for {module} module {var_module}")
-            # print the df to see if it is empty - columns 'councilsiteid', 'siteid', 'lawasiteid' and var_module
-            print(df[['councilsiteid', 'siteid', 'lawasiteid', var_module]])
-
-            continue  # Skip processing if no sites are found
+            continue
         else:
             # Replace np.nan with None
-            context.log.info("Replace np.nan with None and add lawa_site column")
+            context.log.info("Replace np.nan with None and add lawa_site and council column")
             df = df.replace({np.nan: None})
             df['lawa_site'] = "yes"
+            df["council"] = council.get("council")
 
             context.log.info(f"Add to DB: Found sites for {module} module")
             snowflake_resource_con = context.resources.snowflake_resource
-            insert_data_to_snowflake(snowflake_resource_con, df, f"{module}_wfs_table", context.log)
+            load_data_to_snowflake(snowflake_resource_con = snowflake_resource_con, 
+                                     df = df, 
+                                     table_name =  f"{module}_wfs_table",
+                                     council = council.get("council"),
+                                     logger = context.log)
     return df

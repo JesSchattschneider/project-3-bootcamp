@@ -8,6 +8,7 @@ Requires-Dist: pg8000
 Requires-Dist: elementpath
 Requires-Dist: dagster_snowflake
 Requires-Dist: snowflake-connector-python
+Requires-Dist: futures
 Provides-Extra: dev
 Requires-Dist: dagster-webserver; extra == "dev"
 Requires-Dist: pytest; extra == "dev"
