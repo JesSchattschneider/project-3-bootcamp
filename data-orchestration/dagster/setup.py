@@ -10,7 +10,9 @@ setup(
         "pg8000",
         "elementpath",
         "dagster_snowflake",
-        "snowflake-connector-python"
+        "snowflake-connector-python",
+        "dagster-dbt", 
+        "dagster-webserver"
     ],
     extras_require={"dev": ["dagster-webserver", "pytest"]},
 )
