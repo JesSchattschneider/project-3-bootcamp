@@ -1,0 +1,18 @@
+warehouse_snowflake:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: msnofkg-qf00013
+
+      # User/password auth
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+
+      role: ACCOUNTADMIN
+      database: DW
+      warehouse: XSMALL_WH
+      schema: MARTS
+      threads: 12
+      client_session_keep_alive: False
+      

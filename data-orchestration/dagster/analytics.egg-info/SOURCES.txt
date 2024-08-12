@@ -11,6 +11,7 @@ analytics.egg-info/top_level.txt
 analytics/assets/__init__.py
 analytics/jobs/__init__.py
 analytics/ops/__init__.py
+analytics/ops/pull_env_data.py
 analytics/ops/site_list.py
 analytics/resources/__init__.py
 analytics/schedules/__init__.py
